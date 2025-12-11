@@ -4,6 +4,7 @@
 *.xlsx
 *.json
 
+
 # Ignorar ambiente virtual e cache do Python (Lixo técnico)
 __pycache__/
 *.py[cod]

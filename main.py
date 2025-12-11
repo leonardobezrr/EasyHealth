@@ -5,6 +5,7 @@ import pandas as pd
 import google.generativeai as genai
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
 from dotenv import load_dotenv 
+import prompt
 
 load_dotenv()
 
@@ -33,19 +34,14 @@ def processar_exame_medico(caminho_pdf):
     if arquivo_upload.state.name == "FAILED":
         raise ValueError("Falha no processamento do arquivo pela API.")
 
-    print("✅ PDF pronto. Enviando para o Gemini 1.5 Pro...")
+    print("✅ PDF pronto. Enviando para o Gemini 2.5 Flash...")
+
+    prompt_especialista = prompt.prompt_especialista
 
     # 3. Definição do Modelo e Prompt
     model = genai.GenerativeModel(
         model_name="gemini-2.5-flash", 
-        system_instruction="""
-        Você é um extrator de dados laboratoriais. 
-        Analise o PDF fornecido. 
-        Extraia TODOS os resultados de exames.
-        Para o Hemograma, extraia cada linha (Hemácias, Leucócitos, etc) como um item separado.
-        Responda APENAS com um array JSON válido, sem formatação Markdown.
-        Esquema: [{"data": "dd/mm/aaaa", "exame": "Nome", "valor": "0.00", "unidade": "un", "referencia": "texto"}]
-        """
+        system_instruction=prompt_especialista
     )
 
     # Configuração de segurança para evitar bloqueios indevidos em termos médicos
