@@ -4,11 +4,18 @@ import json
 import pandas as pd
 import google.generativeai as genai
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
+from dotenv import load_dotenv # <--- Importe isso
 
-# 1. Configuração (Segurança e Acesso)
-# Configure sua API KEY aqui ou nas variáveis de ambiente
-os.environ["GOOGLE_API_KEY"] = "AIzaSyDJfxO7aqkZ4Q_1SoYRuxYC_jn51bHzTnE"
-genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
+load_dotenv()
+
+# 2. Pega a chave do sistema (agora segura)
+api_key = os.getenv("GOOGLE_API_KEY")
+
+# Verificação de segurança (Professor Rigoroso não confia, ele verifica)
+if not api_key:
+    raise ValueError("❌ ERRO: Chave API não encontrada! Verifique o arquivo .env")
+
+genai.configure(api_key=api_key)
 
 def processar_exame_medico(caminho_pdf):
     print(f"🔬 Iniciando análise rigorosa do arquivo: {caminho_pdf}")
