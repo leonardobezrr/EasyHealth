@@ -4,7 +4,7 @@ import json
 import pandas as pd
 import google.generativeai as genai
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
-from dotenv import load_dotenv # <--- Importe isso
+from dotenv import load_dotenv 
 
 load_dotenv()
 
