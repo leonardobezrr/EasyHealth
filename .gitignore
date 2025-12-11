@@ -1,7 +1,16 @@
-Dez2025.pdf
-Fev2025.pdf
-Jan2025.pdf
-Mar2025.pdf
-Nov2024.pdf
-Out2024.pdf
+# Ignorar arquivos de dados (Entrada e Saída)
+*.pdf
+*.csv
+*.xlsx
+*.json
+
+# Ignorar ambiente virtual e cache do Python (Lixo técnico)
+__pycache__/
+*.py[cod]
+.venv/
+env/
+venv/
+
+# SEGURANÇA MÁXIMA (Nunca suba suas chaves!)
 .env
+api_keys.py
