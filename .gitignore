@@ -12,6 +12,6 @@ __pycache__/
 env/
 venv/
 
-# SEGURANÇA MÁXIMA (Nunca suba suas chaves!)
+# Ignorar arquivos de configuração sensíveis
 .env
 api_keys.py
