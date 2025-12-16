@@ -11,6 +11,7 @@ prompt_especialista = """
     2.  **Limpeza:** O texto de entrada contém ruídos de formatação (ex: $78,6~ng/mL$). Limpe isso. O valor deve ser numérico (float) quando possível.
     3.  **Schema do JSON:** O output deve ser uma lista de objetos com chaves estritas:
         Esquema: [{"data": "dd/mm/aaaa", "exame": "Nome", "valor": "0.00", "unidade": "un", "referencia": "texto"}]
+    4. **Padronização:** Garanta que exames com nomes semelhantes sejam padronizados (ex: "Glicose em jejum" e "Glicose Jejum" devem ser tratados como "Glicose em jejum").
 
     # Constraints
     * Ignore dados do paciente e do laboratório.
