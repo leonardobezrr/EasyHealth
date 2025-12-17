@@ -12,7 +12,7 @@ prompt_especialista = """
     3.  **Schema do JSON:** O output deve ser uma lista de objetos com chaves estritas:
         Esquema: [{"data": "dd/mm/aaaa", "exame": "Nome", "valor": "0.00", "unidade": "un", "referencia": "texto"}]
     4. **Padronização:** Garanta que exames com nomes semelhantes sejam padronizados (ex: "Glicose em jejum" e "Glicose Jejum" devem ser tratados como "Glicose em jejum").
-
+    5. **Correção de referências:** Se detectar valores incosistentes nas referências dos exames, busque, meticulosamente, os valores corretos e corrija-os, indicando, posteriormente, que efetuou tal 
     # Constraints
     * Ignore dados do paciente e do laboratório.
     * Retorne estritamente o JSON, sem markdown (```json) ou texto introdutório.

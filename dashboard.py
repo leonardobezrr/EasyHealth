@@ -19,7 +19,7 @@ st.markdown("---")
 def carregar_dados():
     try:
         # Lê o CSV gerado pelo seu script principal
-        df = pd.read_csv("dados_exames_estruturados.csv")
+        df = pd.read_csv("resultadosPadronizados.csv")
         
         # CONVERSÃO CRÍTICA: Transforma string em data real
         # 'dayfirst=True' é essencial para o formato brasileiro (25/11/2025)
@@ -52,58 +52,72 @@ if 'categoria' in df.columns:
     if cat_selecionada != 'Todas':
         df = df[df['categoria'] == cat_selecionada]
 
-# 2. Filtro de Exame (Obrigatório)
-# Lista apenas exames disponíveis após o filtro de categoria
-lista_exames = df['exame'].unique()
-exame_selecionado = st.sidebar.selectbox("Selecione o Exame", lista_exames)
+# ... (Código anterior de carregamento e Filtro de Categoria mantém igual) ...
 
-# Filtragem final
-df_exame = df[df['exame'] == exame_selecionado]
+# --- 2. Filtro de Exame (MULTISELECTION) ---
+lista_exames = df['exame'].unique()
+
+# Definimos um padrão para não começar vazio (Pega o primeiro da lista)
+default_exames = [lista_exames[0]] if len(lista_exames) > 0 else []
+
+exames_selecionados = st.sidebar.multiselect(
+    "Selecione os Exames (Comparação)", 
+    options=lista_exames,
+    default=default_exames
+)
+
+# Validação Rigorosa: O usuário pode desmarcar tudo, o que quebraria o gráfico
+if not exames_selecionados:
+    st.warning("⚠️ Por favor, selecione pelo menos um exame para visualizar.")
+    st.stop()
+
+# Filtragem Inteligente (isin)
+df_exame = df[df['exame'].isin(exames_selecionados)]
 
 # --- Área Visual (Main) ---
 
-# Métricas no topo (KPIs)
-col1, col2, col3 = st.columns(3)
-ultimo_resultado = df_exame.iloc[-1] # Pega o último registro cronológico
+# Nota do Professor: KPIs (Cartões) ficam confusos com múltiplos exames. 
+# Vamos focar no Gráfico Comparativo.
 
-with col1:
-    st.metric(
-        label="Último Resultado",
-        value=f"{ultimo_resultado['valor']} {ultimo_resultado['unidade']}",
-        delta="Atualizado em " + ultimo_resultado['data'].strftime('%d/%m/%Y')
-    )
+st.subheader(f"📈 Comparativo de Evolução")
 
-with col2:
-    # Mostra a referência para comparação rápida
-    st.info(f"**Referência:**\n{ultimo_resultado['referencia']}")
-
-# --- Gráfico de Evolução (Plotly) ---
-st.subheader(f"📈 Evolução: {exame_selecionado}")
-
-if len(df_exame) > 1:
+if len(df_exame) > 0:
+    # Gráfico Multilinha
     fig = px.line(
         df_exame, 
         x='data', 
         y='valor',
-        markers=True, # Bolinhas nos pontos
-        text='valor', # Mostra o valor no gráfico
+        color='exame',  # <--- O SEGREDO: Diferencia as linhas por cor
+        markers=True,
+        text='valor',
         template="plotly_white"
     )
     
-    # Personalização fina (Professor gosta de clareza)
-    fig.update_traces(textposition="bottom right", line_color='#2E8B57') # Verde médico
-    fig.update_layout(xaxis_title="Data da Coleta", yaxis_title=f"Valor ({ultimo_resultado['unidade']})")
+    # Personalização para Múltiplas Séries
+    fig.update_traces(textposition="top center")
+    fig.update_layout(
+        xaxis_title="Data da Coleta",
+        yaxis_title="Valor Medido",
+        legend_title_text='Exames',
+        hovermode="x unified" # Mostra todos os valores ao passar o mouse numa data
+    )
     
     st.plotly_chart(fig, use_container_width=True)
-else:
-    st.warning("⚠️ Você precisa de pelo menos 2 exames históricos para gerar um gráfico de evolução.")
+    
+    # Alerta de Escala (Obrigação do Especialista)
+    # Verifica se há disparidade grande nos valores (ex: > 1000 de diferença)
+    max_val = df_exame['valor'].max()
+    min_val = df_exame['valor'].min()
+    
+    if max_val > (min_val * 10) and min_val > 0:
+        st.warning("⚠️ **Atenção à Escala:** Você selecionou exames com valores muito discrepantes. Isso pode distorcer a visualização. Tente comparar exames com unidades similares (ex: mg/dL com mg/dL).")
 
-# --- Tabela de Dados Detalhada ---
-st.markdown("### 📋 Histórico Detalhado")
+else:
+    st.warning("Sem dados para os filtros selecionados.")
+
+# --- Tabela de Dados (Mantida, mas agora mostra qual exame é qual) ---
+st.markdown("### 📋 Dados Brutos")
 st.dataframe(
-    df_exame[['data', 'valor', 'unidade', 'referencia', 'arquivo_origem']].style.format({
-        'valor': '{:.2f}',
-        'data': lambda t: t.strftime("%d/%m/%Y") # Formatação bonita da data
-    }),
+    df_exame[['data', 'exame', 'valor', 'unidade', 'referencia']].sort_values(['exame', 'data']),
     use_container_width=True
 )
