@@ -1,33 +1,36 @@
 import os
 import time
+import json
 import base64
 import glob
 import pandas as pd
-import anthropic
+from openai import OpenAI
 from dotenv import load_dotenv
 import prompt
+from padronizacao import padronizar
 
 load_dotenv(override=True)
 
-api_key = os.getenv("ANTHROPIC_API_KEY")
+api_key = os.getenv("OPENAI_API_KEY")
 
 if not api_key:
-    raise ValueError("❌ ERRO: Chave API não encontrada! Verifique o arquivo .env (variável ANTHROPIC_API_KEY)")
+    raise ValueError("❌ ERRO: Chave API não encontrada! Verifique o arquivo .env (variável OPENAI_API_KEY)")
 
-client = anthropic.Anthropic(api_key=api_key)
+client = OpenAI(api_key=api_key)
 
-# Modelo: Sonnet dá o melhor equilíbrio entre precisão (importante em dado de
-# saúde) e custo. Se quiser reduzir custo e o volume de exames for grande,
-# "claude-haiku-4-5-20251001" também processa PDF e costuma ser suficiente
-# para exames com formatação limpa.
-MODEL = "claude-sonnet-5"
+# Modelo: pode ser trocado pelo .env (OPENAI_MODEL) sem mexer no código.
+# Precisa ser um modelo com visão (lê texto e imagem das páginas do PDF).
+# Rode check_setup.py para ver quais modelos sua conta tem disponíveis.
+MODEL = os.getenv("OPENAI_MODEL", "gpt-6-astra")
 
-# Definição da ferramenta: força o Claude a devolver dados nesse formato
-# exato, em vez de confiar que ele "vai lembrar" de responder só em JSON.
-FERRAMENTA_EXTRACAO = {
+# Structured Outputs em modo strict: a API garante que a resposta segue
+# exatamente esse schema, em vez de confiar que o modelo "vai lembrar" de
+# responder só em JSON.
+SCHEMA_EXAMES = {
+    "type": "json_schema",
     "name": "extrair_exames",
-    "description": "Registra os resultados de exames laboratoriais extraídos do documento.",
-    "input_schema": {
+    "strict": True,
+    "schema": {
         "type": "object",
         "properties": {
             "exames": {
@@ -43,10 +46,12 @@ FERRAMENTA_EXTRACAO = {
                         "referencia_suspeita": {"type": "boolean", "description": "true se a referência parecer inconsistente"},
                     },
                     "required": ["data", "exame", "valor", "unidade", "referencia", "referencia_suspeita"],
+                    "additionalProperties": False,
                 },
             }
         },
         "required": ["exames"],
+        "additionalProperties": False,
     },
 }
 
@@ -55,38 +60,31 @@ def processar_exame_medico(caminho_pdf):
     print(f"🔬 Iniciando análise rigorosa do arquivo: {caminho_pdf}")
 
     with open(caminho_pdf, "rb") as f:
-        pdf_base64 = base64.standard_b64encode(f.read()).decode("utf-8")
+        pdf_base64 = base64.b64encode(f.read()).decode("utf-8")
 
     try:
-        response = client.messages.create(
+        response = client.responses.create(
             model=MODEL,
-            max_tokens=4096,
-            system=prompt.prompt_especialista,
-            tools=[FERRAMENTA_EXTRACAO],
-            tool_choice={"type": "tool", "name": "extrair_exames"},
-            messages=[
+            instructions=prompt.prompt_especialista,
+            input=[
                 {
                     "role": "user",
                     "content": [
                         {
-                            "type": "document",
-                            "source": {
-                                "type": "base64",
-                                "media_type": "application/pdf",
-                                "data": pdf_base64,
-                            },
+                            "type": "input_file",
+                            "filename": os.path.basename(caminho_pdf),
+                            "file_data": f"data:application/pdf;base64,{pdf_base64}",
                         },
-                        {"type": "text", "text": "Extraia os dados deste exame."},
+                        {"type": "input_text", "text": "Extraia os dados deste exame."},
                     ],
                 }
             ],
+            text={"format": SCHEMA_EXAMES},
         )
 
-        # Com tool_choice forçado, o bloco de resposta é sempre um tool_use
-        # com .input já parseado como dict — não precisa fazer json.loads
-        # nem tratar markdown/crases na resposta.
-        tool_block = next(b for b in response.content if b.type == "tool_use")
-        dados = tool_block.input.get("exames", [])
+        # Com o schema strict, output_text é sempre um JSON válido nesse
+        # formato — não precisa tratar markdown/crases na resposta.
+        dados = json.loads(response.output_text).get("exames", [])
 
         if not dados:
             print(f"⚠️ Nenhum exame extraído de {caminho_pdf}.")
@@ -98,7 +96,7 @@ def processar_exame_medico(caminho_pdf):
         if "valor" in df.columns:
             df["valor"] = pd.to_numeric(df["valor"], errors="coerce")
 
-        return df
+        return padronizar(df)
 
     except Exception as e:
         print(f"❌ Erro ao processar {caminho_pdf}: {e}")
@@ -108,10 +106,6 @@ def processar_exame_medico(caminho_pdf):
 # --- Execução (em lote) ---
 if __name__ == "__main__":
     pasta_exames = "./exames"
-    # Nome unificado com o que dashboard.py espera (antes havia um
-    # descompasso: main.py escrevia em "dados_exames_estruturados.csv" e
-    # dashboard.py lia "resultadosPadronizados.csv" — o dashboard nunca
-    # achava o arquivo).
     arquivo_saida = "resultadosPadronizados.csv"
 
     lista_pdfs = glob.glob(os.path.join(pasta_exames, "*.pdf"))

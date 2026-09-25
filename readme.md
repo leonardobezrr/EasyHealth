@@ -6,9 +6,9 @@ exibe a evolução dos resultados ao longo do tempo num dashboard.
 ## Como funciona
 
 1. Você coloca os PDFs de exames numa pasta `exames/`
-2. `main.py` manda cada PDF pra API da Anthropic (Claude), que extrai
+2. `main.py` manda cada PDF pra API da OpenAI, que extrai
    cada resultado (exame, valor, unidade, referência, data) em formato
-   estruturado — via *tool use*, o que garante que a resposta sempre
+   estruturado — via *Structured Outputs*, o que garante que a resposta sempre
    vem no formato esperado, sem precisar validar/consertar texto solto
 3. Os dados viram `resultadosPadronizados.csv`
 4. `dashboard.py` (Streamlit) lê esse CSV e mostra gráficos comparativos
@@ -19,7 +19,7 @@ exibe a evolução dos resultados ao longo do tempo num dashboard.
 ```bash
 pip install -r requirements.txt
 cp .env.example .env
-# edite o .env e cole sua chave da Anthropic (console.anthropic.com/settings/keys)
+# edite o .env e cole sua chave da OpenAI (platform.openai.com/api-keys)
 ```
 
 ## Uso
