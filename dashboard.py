@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from padronizacao import padronizar
 
 # Configuração da Página (Layout Profissional)
 st.set_page_config(
@@ -20,6 +21,9 @@ def carregar_dados():
     try:
         # Lê o CSV gerado pelo seu script principal
         df = pd.read_csv("resultadosPadronizados.csv")
+
+        # Unifica nomes/unidades (também corrige CSVs gerados antes da padronização)
+        df = padronizar(df)
         
         # CONVERSÃO CRÍTICA: Transforma string em data real
         # 'dayfirst=True' é essencial para o formato brasileiro (25/11/2025)
@@ -39,7 +43,7 @@ def carregar_dados():
 df = carregar_dados()
 
 if df is None:
-    st.error("❌ Arquivo 'dados_exames_estruturados.csv' não encontrado. Rode o 'main.py' primeiro!")
+    st.error("❌ Arquivo 'resultadosPadronizados.csv' não encontrado. Rode o 'main.py' primeiro!")
     st.stop()
 
 # --- Sidebar (Barra Lateral de Filtros) ---
