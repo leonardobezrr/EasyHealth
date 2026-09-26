@@ -1,0 +1,17 @@
+# Ignorar arquivos de dados (Entrada e Saída)
+*.pdf
+*.csv
+*.xlsx
+*.json
+
+
+# Ignorar ambiente virtual e cache do Python (Lixo técnico)
+__pycache__/
+*.py[cod]
+.venv/
+env/
+venv/
+
+# Ignorar arquivos de configuração sensíveis
+.env
+api_keys.py
